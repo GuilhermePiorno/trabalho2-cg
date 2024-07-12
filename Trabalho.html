@@ -18,6 +18,7 @@
         constructor(){
           super();
           this.program = null;
+          this.programSun = null;
           this.fov = 60;
           this.rotationVector = [0.0,0.0,0.0];
           this.lightPos = [0.0,0.0,-2000.0]; 
@@ -50,8 +51,12 @@
         }
 
         createModels(){
+            /*Textures obtained from 
+            https://planet-texture-maps.fandom.com/wiki/Planet_Texture_Maps_Wiki
+            https://www.solarsystemscope.com/textures/
+            */
           //Item 1
-          this.sun = new WebGLSphere(this.gl,this.program,120.0,32,32,new Color(1.0,0.0,0.0,1.0),"SolarSystemTextures/Sun.png");
+          this.sun = new WebGLSphere(this.gl,this.programSun,120.0,32,32,new Color(1.0,0.0,0.0,1.0),"SolarSystemTextures/Sun.png");
           this.sunModel = this.sun.getWebGLModel();
 
           this.mercury = new WebGLSphere(this.gl,this.program,10.0,32,32,new Color(1.0,0.0,0.0,1.0),"SolarSystemTextures/Mercury.png");
@@ -83,7 +88,9 @@
           // Carrega um program       
           //this.program = this.createProgram("vertex-shader","fragment-shader");
           this.program = await this.loadProgram("vertexShader.glsl","fragmentShader.glsl");
+          // this.program = await this.loadProgram("vertexShaderSun.glsl","fragmentShader.glsl");
           this.programSun = await this.loadProgram("vertexShaderSun.glsl","fragmentShader.glsl");
+          // this.programSun = this.program;
           // this.programLines = await this.loadProgram("vertexShaderLines.sh","fragmentShaderLines.sh");
           // this.programNoise = await this.loadProgram("vertexShaderNoise.sh","fragmentShader.sh");
           
@@ -110,6 +117,8 @@
           this.setProgramAttribShaderVariablesLocation(this.program,this.attribShaderVariables);
           this.setProgramUniformShaderVariablesLocation(this.program,this.uniformShaderVariables);
 
+          this.setProgramAttribShaderVariablesLocation(this.programSun,this.attribShaderVariables);
+          this.setProgramUniformShaderVariablesLocation(this.programSun,this.uniformShaderVariables);
           // this.setProgramAttribShaderVariablesLocation(this.programNoise,this.attribShaderVariables);
           // this.setProgramUniformShaderVariablesLocation(this.programNoise,this.uniformShaderVariables);
 
@@ -137,6 +146,7 @@
                                               "uSampler":["1i",0]};
 
           this.setProgramUniformShaderVariablesValues(this.program,uniformShaderVariablesValues);
+          this.setProgramUniformShaderVariablesValues(this.programSun,uniformShaderVariablesValues);
           // this.setProgramUniformShaderVariablesValues(this.programNoise,uniformShaderVariablesValues);
           // this.setProgramUniformShaderVariablesValues(this.programLines,uniformShaderLinesVariablesValues);
         }
@@ -148,6 +158,18 @@
           let time = performance.now() / 100;
           //console.log(time);
 
+          this.stack.push(mat4.clone(modelViewMatrix));
+            // Translação do Sol
+            vec3.set(tv, 0.0, 0.0, -2000.0); 
+            mat4.translate(modelViewMatrix,modelViewMatrix,tv);
+            let sunRotation = mat4.clone(modelViewMatrix);
+            mat4.rotateY(sunRotation, sunRotation, time * Math.PI / 180);      
+            // update
+            this.updateModelViewMatrix(this.programSun,sunRotation,"uModelViewMatrix");
+            // this.updateModelViewMatrix(this.programSun,modelViewMatrix,"uModelViewMatrix");
+            this.sunModel.draw();
+          modelViewMatrix = this.stack.pop();
+          
           // this.stack.push(mat4.clone(modelViewMatrix));
           //   // Translação do Sol
           //   vec3.set(tv, 0.0, 0.0, -2000.0); 
@@ -156,21 +178,22 @@
           //   let sunRotation = mat4.clone(modelViewMatrix);
           //   mat4.rotateY(sunRotation, sunRotation, time * Math.PI / 180);      
           //   // update
-          //   this.updateModelViewMatrix(this.programSun,sunRotation,"uModelViewMatrix");
+          //   this.updateModelViewMatrix(this.program,sunRotation,"uModelViewMatrix");
           //   this.sunModel.draw();
           // modelViewMatrix = this.stack.pop();
 
+          
           this.stack.push(mat4.clone(modelViewMatrix));
             // Translação do Sol
             vec3.set(tv, 0.0, 0.0, -2000.0); 
             mat4.translate(modelViewMatrix,modelViewMatrix,tv);
-            // Rotação do Sol (em matriz seprada)
-            let sunRotation = mat4.clone(modelViewMatrix);
-            mat4.rotateY(sunRotation, sunRotation, time * Math.PI / 180);      
-            // update
-            this.updateModelViewMatrix(this.program,sunRotation,"uModelViewMatrix");
-            // this.updateModelViewMatrix(this.programSun,sunRotation,"uModelViewMatrix");
-            this.sunModel.draw();
+            // // Rotação do Sol (em matriz seprada)
+            // let sunRotation = mat4.clone(modelViewMatrix);
+            // mat4.rotateY(sunRotation, sunRotation, time * Math.PI / 180);      
+            // // update
+            // this.updateModelViewMatrix(this.program,sunRotation,"uModelViewMatrix");
+            // // this.updateModelViewMatrix(this.programSun,sunRotation,"uModelViewMatrix");
+            // this.sunModel.draw();
 
             // Mercúrio
             this.stack.push(mat4.clone(modelViewMatrix));
@@ -278,7 +301,7 @@
             modelViewMatrix = this.stack.pop();
           modelViewMatrix = this.stack.pop();
 
-
+          
 
         }
 
