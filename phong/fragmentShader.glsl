@@ -45,7 +45,7 @@ void main(void) {
 
     //Se o coeficiente de atenuacao difusa for positivo
     if (lambert>0.0){//multiplica o coeficiente pelo material
-      vec3 refVec = reflect(lightVec,normalVec);
+      vec3 refVec = reflect(-lightVec,normalVec);
       float angSpec = max(0.0,dot(refVec,eyeVec));
       float specular = pow(angSpec,ns);
       Id = Kd*vec3(lambert*matDiff);
