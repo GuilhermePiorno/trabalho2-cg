@@ -2,6 +2,7 @@
 precision mediump float;
 precision mediump int;
 in vec4 vColor;
+in vec3 vNormal;
 in vec2 vTextureCoordinate;
 out vec4 fragColor;
 uniform int uTextureActive;

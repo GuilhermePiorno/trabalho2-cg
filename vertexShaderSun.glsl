@@ -20,41 +20,20 @@
     uniform vec3 uEyePos;
 
 
-    highp float rand(vec2 co)
-    {
-        highp float a = 12.9898;
-        highp float b = 78.233;
-        highp float c = 43758.5453;
-        highp float dt= dot(co.xy ,vec2(a,b));
-        highp float sn= mod(dt,3.14);
-        return fract(sin(sn) * c);
-    }
-
-  
-
     void main(void) {
-      
-
-      vec3 coord = aVertexPos;
-      vec2 c = vec2(coord.x*coord.y,coord.z*coord.x);
-      float d = rand(c);
-      float intensity = 0.2;
-   
-      //coord = coord + intensity*d*aVertexNormal;
       
       mat4 normalMatrix = inverse(uModelViewMatrix);
       normalMatrix = transpose(normalMatrix);
 
+      vec4 pos = vec4(aVertexPos,1.0);
+      vec4 posView = uModelViewMatrix*vec4(aVertexPos,1.0);
+      vec4 newPos = uProjectionMatrix*uModelViewMatrix * pos; //posicao final do vertice
       vec4 normal = normalMatrix*vec4(aVertexNormal,0.0);
-      vec4 light =  vec4(uLightPos,0.0);
-     
-      vec4 transformedNormal = normalize(vec4(vec3(normal),0.0));
-      vec4 pos = uModelViewMatrix*(vec4(coord,1.0))+intensity*d*transformedNormal;
-      vec4 newPos = uProjectionMatrix* pos;
+      vec4 light =  transpose(inverse(uNormalMatrix))*vec4(uLightPos,1.0); //posicao da luz no espaco do objeto
       vColor = vec4(aVertexColor,1.0); 
 
       vec3 normalVec = normalize(vec3(normal));
-      vec3 lightVec = normalize(vec3(light));
+      vec3 lightVec = normalize(vec3(light) - vec3(posView));
       vec3 eyeVec = normalize(vec3(uEyePos));
 
       float lambert = dot(normalVec,lightVec);
@@ -68,18 +47,21 @@
       else{// se nao é um cor branca
         matDiff = vec4(1.0,1.0,1.0,1.0);
         matSpec = vec4(1.0,1.0,1.0,1.0);
+        //matDiff = vec4(1.0,1.0,1.0,1.0);
+        //matSpec = vec4(1.0,0.0,0.0,1.0);
       }
 
       vec3 Ia; //Iluminacao ambiental
       vec3 Id; //Iluminacao Difusa
       vec3 Is; //Iluminacao Especular
-      float Ka = 0.2;
-      float Kd = 0.5;
+      float Ka = 0.3;
+      float Kd = 0.8;
       float Ks = 0.5;
-      float ns = 4.0;
+      float ns = 8.0;
 
       //Calculo da compoenente ambiental
-      Ia = Ka*vec3(1.0,1.0,1.0);
+      //Ia = Ka*vec3(1.0,1.0,1.0);
+      Ia = vec3(1.0,1.0,1.0);
 
       //Se o coeficiente de atenuacao difusa for positivo
       if (lambert>0.0){//multiplica o coeficiente pelo material

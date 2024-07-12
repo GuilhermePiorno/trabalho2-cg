@@ -1,6 +1,6 @@
 <html>
 <head>
-  <title>Rendering primitives</title>
+  <title>Solar System</title>
   <link rel="stylesheet" href="./lib/normalize.css">
   <script type="text/javascript" src="./lib/dat.gui.js"></script>
   <script type="text/javascript" src="./js/utils.js"></script>
@@ -20,7 +20,7 @@
           this.program = null;
           this.fov = 60;
           this.rotationVector = [0.0,0.0,0.0];
-          this.lightPos = [1.0,0.0,0.0]; 
+          this.lightPos = [0.0,0.0,-2000.0]; 
           this.translationVector = [0.0,0.0,-20.0];
           this.stack = new SimpleGLStack();
         }
@@ -70,7 +70,6 @@
           this.jupiterModel = this.jupiter.getWebGLModel();
 
           this.saturn = new WebGLSphere(this.gl,this.program,55.0,32,32,new Color(1.0,0.0,0.0,1.0),"SolarSystemTextures/Saturn.png");
-          // this.saturn = new WebGLSphere(this.gl,this.program,55.0,32,32,new Color(1.0,0.0,0.0,1.0),"none");
           this.saturnModel = this.saturn.getWebGLModel();
 
           this.uranus = new WebGLSphere(this.gl,this.program,25.0,32,32,new Color(1.0,0.0,0.0,1.0),"SolarSystemTextures/Uranus.png");
@@ -83,7 +82,8 @@
         async create(){
           // Carrega um program       
           //this.program = this.createProgram("vertex-shader","fragment-shader");
-          this.program = await this.loadProgram("vertexShader.sh","fragmentShader.sh");
+          this.program = await this.loadProgram("vertexShader.glsl","fragmentShader.glsl");
+          this.programSun = await this.loadProgram("vertexShaderSun.glsl","fragmentShader.glsl");
           // this.programLines = await this.loadProgram("vertexShaderLines.sh","fragmentShaderLines.sh");
           // this.programNoise = await this.loadProgram("vertexShaderNoise.sh","fragmentShader.sh");
           
@@ -148,6 +148,18 @@
           let time = performance.now() / 100;
           //console.log(time);
 
+          // this.stack.push(mat4.clone(modelViewMatrix));
+          //   // Translação do Sol
+          //   vec3.set(tv, 0.0, 0.0, -2000.0); 
+          //   mat4.translate(modelViewMatrix,modelViewMatrix,tv);
+          //   // Rotação do Sol (em matriz seprada)
+          //   let sunRotation = mat4.clone(modelViewMatrix);
+          //   mat4.rotateY(sunRotation, sunRotation, time * Math.PI / 180);      
+          //   // update
+          //   this.updateModelViewMatrix(this.programSun,sunRotation,"uModelViewMatrix");
+          //   this.sunModel.draw();
+          // modelViewMatrix = this.stack.pop();
+
           this.stack.push(mat4.clone(modelViewMatrix));
             // Translação do Sol
             vec3.set(tv, 0.0, 0.0, -2000.0); 
@@ -157,6 +169,7 @@
             mat4.rotateY(sunRotation, sunRotation, time * Math.PI / 180);      
             // update
             this.updateModelViewMatrix(this.program,sunRotation,"uModelViewMatrix");
+            // this.updateModelViewMatrix(this.programSun,sunRotation,"uModelViewMatrix");
             this.sunModel.draw();
 
             // Mercúrio
@@ -264,6 +277,9 @@
               this.neptuneModel.draw();
             modelViewMatrix = this.stack.pop();
           modelViewMatrix = this.stack.pop();
+
+
+
         }
 
 
@@ -279,6 +295,7 @@
           mat4.rotateZ(this.modelViewMatrix,this.modelViewMatrix,this.rotationVector[2] * Math.PI / 180);
           
           this.updateModelViewMatrix(this.program,this.modelViewMatrix,"uModelViewMatrix");   
+          this.updateModelViewMatrix(this.programSun,this.modelViewMatrix,"uModelViewMatrix");   
           // this.updateModelViewMatrix(this.programLines,this.modelViewMatrix,"uModelViewMatrix");   
           // this.updateModelViewMatrix(this.programNoise,this.modelViewMatrix,"uModelViewMatrix");  
           
@@ -287,6 +304,7 @@
           mat4.transpose(this.normalMatrix,this.normalMatrix);
 
           this.updateNormalMatrix(this.program,this.normalMatrix,"uNormalMatrix");            
+          this.updateNormalMatrix(this.programSun,this.normalMatrix,"uNormalMatrix");            
           // this.updateNormalMatrix(this.programLines,this.normalMatrix,"uNormalMatrix");    
           // this.updateNormalMatrix(this.programNoise,this.normalMatrix,"uNormalMatrix");           
 
@@ -296,10 +314,10 @@
           mat4.perspective(this.projectionMatrix, this.fov*(Math.PI/180), this.gl.canvas.width / this.gl.canvas.height, 0.1, 3000);
 
           this.updateProjectionMatrix(this.program,this.projectionMatrix,"uProjectionMatrix");
+          this.updateProjectionMatrix(this.programSun,this.projectionMatrix,"uProjectionMatrix");
           // this.updateProjectionMatrix(this.programLines,this.projectionMatrix,"uProjectionMatrix");
           // this.updateProjectionMatrix(this.programNoise,this.projectionMatrix,"uProjectionMatrix");
           this.drawScene(this.modelViewMatrix);
-
         } 
 
         initControls(){
