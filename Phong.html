@@ -1,0 +1,274 @@
+<html>
+<head>
+  <title>Rendering primitives</title>
+  <link rel="stylesheet" href="./lib/normalize.css">
+  <script type="text/javascript" src="./lib/dat.gui.js"></script>
+  <script type="text/javascript" src="./js/utils.js"></script>
+  <script type="text/javascript" src="./lib/gl-matrix.js"></script>
+  <script type="text/javascript" src="./objects.js"></script>
+  <script type="text/javascript" src="./simpleGLStack.js"></script>
+  <script type="text/javascript" src="./geometry.js"></script>
+  <script type="text/javascript" src="./webGLApp.js"></script>
+  <script type="text/javascript" src="./webGLModel.js"></script>
+  <script type="text/javascript" src="./shapes.js"></script>
+  <script type="text/javascript" src="./shapesWebGL.js"></script>
+  <script type="text/javascript">
+  
+    class MyWebGLMainAPP extends WebGLMainApp{
+        constructor(){
+          super();
+          this.program = null;
+          this.fov = 60;
+          this.rotationVector = [0.0,0.0,0.0];
+          this.lightPos = [1.0,0.0,0.0]; 
+          this.translationVector = [0.0,0.0,-20.0];
+          this.stack = new SimpleGLStack();
+          this.lightingtype = "Phong";  // Controle não funciona, tem q ser mudado aqui pra algo entre Phong ou não Phong e atualizar
+        }
+
+        createTransformMatrices(){
+          this.modelViewMatrix = mat4.create();
+          this.projectionMatrix = mat4.create();
+          this.normalMatrix = mat4.create();
+
+          var tv = vec3.create();
+
+          vec3.set(tv, this.translationVector[0], this.translationVector[1], this.translationVector[2]);
+
+          mat4.fromTranslation(this.modelViewMatrix,tv);
+          mat4.rotateX(this.modelViewMatrix,this.modelViewMatrix,this.rotationVector[0] * Math.PI / 180);
+          mat4.rotateY(this.modelViewMatrix,this.modelViewMatrix,this.rotationVector[1] * Math.PI / 180);
+          mat4.rotateZ(this.modelViewMatrix,this.modelViewMatrix,this.rotationVector[2] * Math.PI / 180);
+
+          
+          mat4.identity(this.normalMatrix);
+          mat4.invert(this.normalMatrix,this.modelViewMatrix);
+          mat4.transpose(this.normalMatrix,this.normalMatrix);
+
+          //Cria a matriz de projeção com angulo de abertura de 45 graus, near plane = 0.1 e far_plane = 1000
+          mat4.identity(this.projectionMatrix);  
+          mat4.perspective(this.projectionMatrix, this.fov*(Math.PI/180), this.gl.canvas.width / this.gl.canvas.height, 0.1, 1000);
+        }
+
+        createModels(){
+          this.earth = new WebGLSphere(this.gl,this.program,120.0,12,12,new Color(0.0,0.0,1.0,1.0),"SsolarSystemTextures/earth.png");
+          this.earthModel = this.earth.getWebGLModel();
+        }
+
+        async create(){
+          // Carrega um program       
+          // this.program = await this.loadProgram("phong/vertexShader.glsl","phong/fragmentShader.glsl");
+          if (this.lightingtype == "Phong")
+            this.program = await this.loadProgram("phong/vertexShader.glsl","phong/fragmentShader.glsl");
+          else
+            this.program = await this.loadProgram("gauraud/vertexShader.glsl","gauraud/fragmentShader.glsl");
+          // this.program = await this.loadProgram("phong/vertexShader.glsl","phong/fragmentShader.glsl");
+          this.gl.useProgram(this.program);
+
+          //Define as variáveis attribute e uniform dos shaders
+          this.attribShaderVariables = {"aVertexPosition":"aVertexPos",
+                                        "aVertexColor":"aVertexColor",
+                                        "aVertexNormal":"aVertexNormal",
+                                        "aVertexTextureCoord":"aTextureCoordinate"};
+
+          this.uniformShaderVariables = ["uVertexPointSize","uModelViewMatrix","uNormalMatrix","uProjectionMatrix",
+                                         "uLightPos","uEyePos","uTextureActive","uSampler"];
+
+          //Define as variáveis attribute e uniform dos shaders
+          this.attribShaderLinesVariables = {"aVertexPosition":"aVertexPosition",
+                                            "aVertexColor":"aVertexColor",
+                                            "aVertexTextureCoord":"aTextureCoordinate"};
+
+          this.uniformShaderLinesVariables = ["uVertexPointSize","uModelViewMatrix","uProjectionMatrix","uTextureActive","uSampler"];
+          
+
+          //Obtem a localização das variáveis no shader
+          this.setProgramAttribShaderVariablesLocation(this.program,this.attribShaderVariables);
+          this.setProgramUniformShaderVariablesLocation(this.program,this.uniformShaderVariables);
+
+
+          this.createTransformMatrices();
+          
+          this.createModels();
+
+          var uniformShaderVariablesValues = {"uVertexPointSize":["1f",16.0],
+                                              "uModelViewMatrix":["mat4",false,this.modelViewMatrix],
+                                              "uNormalMatrix":["mat4",false,this.normalMatrix],
+                                              "uProjectionMatrix":["mat4",false,this.projectionMatrix],
+                                              "uLightPos":["3f",this.lightPos[0],this.lightPos[1],this.lightPos[2]],
+                                              "uEyePos":["3f",this.translationVector[0],this.translationVector[1],this.translationVector[2]],
+                                              "uTextureActive":["1i",1],
+                                              "uSampler":["1i",0]};
+          
+          var uniformShaderLinesVariablesValues = {"uVertexPointSize":["1f",16.0],
+                                              "uModelViewMatrix":["mat4",false,this.modelViewMatrix],
+                                              "uProjectionMatrix":["mat4",false,this.projectionMatrix],
+                                              "uTextureActive":["1i",0],
+                                              "uSampler":["1i",0]};
+
+          this.setProgramUniformShaderVariablesValues(this.program,uniformShaderVariablesValues);
+        }
+
+
+        drawScene(modelViewMatrix){
+          var tv = vec3.create();
+          let time = performance.now() / 100;
+          //console.log(time);
+
+          this.stack.push(mat4.clone(modelViewMatrix));
+            vec3.set(tv, -20.0, -40.0, -340.0); 
+            mat4.translate(modelViewMatrix,modelViewMatrix,tv);
+            // this.updateModelViewMatrix(this.program,modelViewMatrix,"uModelViewMatrix");
+
+
+            // Rotação (em matriz separada)
+            let earthRotation = mat4.clone(modelViewMatrix);
+            mat4.rotateY(earthRotation,earthRotation, time * Math.PI / 180);      
+            // update
+            this.updateModelViewMatrix(this.program,earthRotation,"uModelViewMatrix");
+            this.earthModel.draw();
+
+            this.earthModel.draw();
+          modelViewMatrix = this.stack.pop();
+        }
+
+
+        draw() {
+          this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
+           
+          var tv = vec3.create();
+          vec3.set(tv, this.translationVector[0], this.translationVector[1], this.translationVector[2]);
+          
+          mat4.fromTranslation(this.modelViewMatrix,tv);
+          mat4.rotateX(this.modelViewMatrix,this.modelViewMatrix,this.rotationVector[0] * Math.PI / 180);
+          mat4.rotateY(this.modelViewMatrix,this.modelViewMatrix,this.rotationVector[1] * Math.PI / 180);
+          mat4.rotateZ(this.modelViewMatrix,this.modelViewMatrix,this.rotationVector[2] * Math.PI / 180);
+          
+          this.updateModelViewMatrix(this.program,this.modelViewMatrix,"uModelViewMatrix");   
+          
+          mat4.identity(this.normalMatrix);
+          mat4.invert(this.normalMatrix,this.modelViewMatrix);
+          mat4.transpose(this.normalMatrix,this.normalMatrix);
+
+          this.updateNormalMatrix(this.program,this.normalMatrix,"uNormalMatrix");            
+
+
+          mat4.identity(this.projectionMatrix); 
+          
+          mat4.perspective(this.projectionMatrix, this.fov*(Math.PI/180), this.gl.canvas.width / this.gl.canvas.height, 0.001, 3000);
+
+          this.updateProjectionMatrix(this.program,this.projectionMatrix,"uProjectionMatrix");
+          this.drawScene(this.modelViewMatrix);
+
+        } 
+
+        initControls(){
+            var obj = this;
+
+            //var axis = ["x","y","z"];
+
+            // A wrapper around dat.GUI interface for a simpler API
+            // for the purpose of this book
+            utils.configureControls({
+                
+                /*
+                'Rendering Mode': {
+                value: renderingMode,
+                options: [
+                    'TRIANGLES',
+                    'LINES',
+                    'POINTS',
+                    'LINE_LOOP',
+                    'LINE_STRIP',
+                    'TRIANGLE_STRIP',
+                    'TRIANGLE_FAN'
+                ],
+                onChange: v => {renderingMode = v;render();}
+                },*/
+
+                'Lighting Algorithm': {
+                value: obj.lightingtype,
+                options: [
+                    'Phong',
+                    'Gauraud'
+                ],
+                onChange: v => {obj.lightingtype = v;}
+                },
+                
+                // reduce receives a function and the initial value (below the initial value is {})
+                // result is the initial value or the return of the previous call to the function
+                // Spread all values from the reduce onto the controls
+                ...['Translate X', 'Translate Y', 'Translate Z'].reduce((result, name, i) => {
+                result[name] = {
+                    value: obj.translationVector[i],
+                    min: -2000, 
+                    max: 2000, 
+                    step: 1.0,
+                    onChange(v, state){
+                    obj.translationVector[i] = v;
+                    obj.draw(); 
+                    }
+                };
+                return result;
+                }, {}),
+
+
+                ...['Rotate X', 'Rotate Y', 'Rotate Z'].reduce((result, name, i) => {
+                result[name] = {
+                    value: obj.rotationVector[i],
+                    min: -180, max: 180, step: 0.000001,
+                    onChange(v, state) {
+                    obj.rotationVector = [
+                        state['Rotate X'],
+                        state['Rotate Y'],
+                        state['Rotate Z']
+                    ];
+                    obj.draw();  
+
+                    }
+                };
+                return result;
+                }, {}),
+
+                
+                'fov':{
+                value: obj.fov,
+                min : 0.0,
+                max : 120,
+                step: 0.001,
+                onChange(v,state){
+                    obj.fov = v;
+                    obj.draw();
+                }
+            }
+        })
+    }
+
+
+
+        init() {
+          this.gl.clearColor(0.6, 0.6, 0.9, 1.0);
+          // this.gl.clearColor(0, 0, 0, 1.0);
+          this.gl.enable(this.gl.DEPTH_TEST);
+          super.init();
+        }
+   
+  }
+
+  </script>
+</head>
+
+<body>
+
+  <canvas id="webgl-canvas" width="1680" height="1050">
+    Your browser does not support the HTML5 canvas element.
+  </canvas>
+
+  <script type="text/javascript">
+      let myWebGLMainAPP = new MyWebGLMainAPP();
+      window.onload = myWebGLMainAPP.init();
+  </script>
+
+</body>
+
+</html>

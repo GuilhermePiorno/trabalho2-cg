@@ -1,0 +1,406 @@
+<html>
+<head>
+  <title>Rendering primitives</title>
+  <link rel="stylesheet" href="./lib/normalize.css">
+  <script type="text/javascript" src="./lib/dat.gui.js"></script>
+  <script type="text/javascript" src="./js/utils.js"></script>
+  <script type="text/javascript" src="./lib/gl-matrix.js"></script>
+  <script type="text/javascript" src="./objects.js"></script>
+  <script type="text/javascript" src="./simpleGLStack.js"></script>
+  <script type="text/javascript" src="./geometry.js"></script>
+  <script type="text/javascript" src="./webGLApp.js"></script>
+  <script type="text/javascript" src="./webGLModel.js"></script>
+  <script type="text/javascript" src="./shapes.js"></script>
+  <script type="text/javascript" src="./shapesWebGL.js"></script>
+  <script type="text/javascript">
+  
+    class MyWebGLMainAPP extends WebGLMainApp{
+        constructor(){
+          super();
+          this.program = null;
+          this.fov = 60;
+          this.rotationVector = [0.0,0.0,0.0];
+          this.lightPos = [1.0,0.0,0.0]; 
+          this.translationVector = [0.0,0.0,-20.0];
+          this.stack = new SimpleGLStack();
+        }
+
+        createTransformMatrices(){
+          this.modelViewMatrix = mat4.create();
+          this.projectionMatrix = mat4.create();
+          this.normalMatrix = mat4.create();
+
+          var tv = vec3.create();
+
+          vec3.set(tv, this.translationVector[0], this.translationVector[1], this.translationVector[2]);
+
+          mat4.fromTranslation(this.modelViewMatrix,tv);
+          mat4.rotateX(this.modelViewMatrix,this.modelViewMatrix,this.rotationVector[0] * Math.PI / 180);
+          mat4.rotateY(this.modelViewMatrix,this.modelViewMatrix,this.rotationVector[1] * Math.PI / 180);
+          mat4.rotateZ(this.modelViewMatrix,this.modelViewMatrix,this.rotationVector[2] * Math.PI / 180);
+
+          
+          mat4.identity(this.normalMatrix);
+          mat4.invert(this.normalMatrix,this.modelViewMatrix);
+          mat4.transpose(this.normalMatrix,this.normalMatrix);
+
+          //Cria a matriz de projeção com angulo de abertura de 45 graus, near plane = 0.1 e far_plane = 1000
+          mat4.identity(this.projectionMatrix);  
+          mat4.perspective(this.projectionMatrix, this.fov*(Math.PI/180), this.gl.canvas.width / this.gl.canvas.height, 0.1, 1000);
+        }
+
+        createModels(){
+          //Item 1
+          this.sun = new WebGLSphere(this.gl,this.program,120.0,32,32,new Color(1.0,0.0,0.0,1.0),"SolarSystemTextures/Sun.png");
+          this.sunModel = this.sun.getWebGLModel();
+
+          this.mercury = new WebGLSphere(this.gl,this.program,10.0,32,32,new Color(1.0,0.0,0.0,1.0),"SolarSystemTextures/Mercury.png");
+          this.mercuryModel = this.mercury.getWebGLModel();
+
+          this.venus = new WebGLSphere(this.gl,this.program,15.0,32,32,new Color(1.0,0.0,0.0,1.0),"SolarSystemTextures/Venus.png");
+          this.venusModel = this.venus.getWebGLModel();
+
+          this.earth = new WebGLSphere(this.gl,this.program,20.0,32,32,new Color(1.0,0.0,0.0,1.0),"SolarSystemTextures/Earth.png");
+          this.earthModel = this.earth.getWebGLModel();
+
+          this.mars = new WebGLSphere(this.gl,this.program,17.0,32,32,new Color(1.0,0.0,0.0,1.0),"SolarSystemTextures/Mars.png");
+          this.marsModel = this.mars.getWebGLModel();
+
+          this.jupiter = new WebGLSphere(this.gl,this.program,60.0,32,32,new Color(1.0,0.0,0.0,1.0),"SolarSystemTextures/Jupiter.png");
+          this.jupiterModel = this.jupiter.getWebGLModel();
+
+          this.saturn = new WebGLSphere(this.gl,this.program,55.0,32,32,new Color(1.0,0.0,0.0,1.0),"SolarSystemTextures/Saturn.png");
+          // this.saturn = new WebGLSphere(this.gl,this.program,55.0,32,32,new Color(1.0,0.0,0.0,1.0),"none");
+          this.saturnModel = this.saturn.getWebGLModel();
+
+          this.uranus = new WebGLSphere(this.gl,this.program,25.0,32,32,new Color(1.0,0.0,0.0,1.0),"SolarSystemTextures/Uranus.png");
+          this.uranusModel = this.uranus.getWebGLModel();
+
+          this.neptune = new WebGLSphere(this.gl,this.program,26.0,32,32,new Color(1.0,0.0,0.0,1.0),"SolarSystemTextures/Neptune.png");
+          this.neptuneModel = this.neptune.getWebGLModel();
+        }
+
+        async create(){
+          // Carrega um program       
+          //this.program = this.createProgram("vertex-shader","fragment-shader");
+          this.program = await this.loadProgram("vertexShader.sh","fragmentShader.sh");
+          // this.programLines = await this.loadProgram("vertexShaderLines.sh","fragmentShaderLines.sh");
+          // this.programNoise = await this.loadProgram("vertexShaderNoise.sh","fragmentShader.sh");
+          
+          this.gl.useProgram(this.program);
+
+          //Define as variáveis attribute e uniform dos shaders
+          this.attribShaderVariables = {"aVertexPosition":"aVertexPos",
+                                        "aVertexColor":"aVertexColor",
+                                        "aVertexNormal":"aVertexNormal",
+                                        "aVertexTextureCoord":"aTextureCoordinate"};
+
+          this.uniformShaderVariables = ["uVertexPointSize","uModelViewMatrix","uNormalMatrix","uProjectionMatrix",
+                                         "uLightPos","uEyePos","uTextureActive","uSampler"];
+
+          //Define as variáveis attribute e uniform dos shaders
+          this.attribShaderLinesVariables = {"aVertexPosition":"aVertexPosition",
+                                            "aVertexColor":"aVertexColor",
+                                            "aVertexTextureCoord":"aTextureCoordinate"};
+
+          this.uniformShaderLinesVariables = ["uVertexPointSize","uModelViewMatrix","uProjectionMatrix","uTextureActive","uSampler"];
+          
+
+          //Obtem a localização das variáveis no shader
+          this.setProgramAttribShaderVariablesLocation(this.program,this.attribShaderVariables);
+          this.setProgramUniformShaderVariablesLocation(this.program,this.uniformShaderVariables);
+
+          // this.setProgramAttribShaderVariablesLocation(this.programNoise,this.attribShaderVariables);
+          // this.setProgramUniformShaderVariablesLocation(this.programNoise,this.uniformShaderVariables);
+
+
+          // this.setProgramAttribShaderVariablesLocation(this.programLines,this.attribShaderLinesVariables);
+          // this.setProgramUniformShaderVariablesLocation(this.programLines,this.uniformShaderLinesVariables);
+
+          this.createTransformMatrices();
+          
+          this.createModels();
+
+          var uniformShaderVariablesValues = {"uVertexPointSize":["1f",16.0],
+                                              "uModelViewMatrix":["mat4",false,this.modelViewMatrix],
+                                              "uNormalMatrix":["mat4",false,this.normalMatrix],
+                                              "uProjectionMatrix":["mat4",false,this.projectionMatrix],
+                                              "uLightPos":["3f",this.lightPos[0],this.lightPos[1],this.lightPos[2]],
+                                              "uEyePos":["3f",this.translationVector[0],this.translationVector[1],this.translationVector[2]],
+                                              "uTextureActive":["1i",1],
+                                              "uSampler":["1i",0]};
+          
+          var uniformShaderLinesVariablesValues = {"uVertexPointSize":["1f",16.0],
+                                              "uModelViewMatrix":["mat4",false,this.modelViewMatrix],
+                                              "uProjectionMatrix":["mat4",false,this.projectionMatrix],
+                                              "uTextureActive":["1i",0],
+                                              "uSampler":["1i",0]};
+
+          this.setProgramUniformShaderVariablesValues(this.program,uniformShaderVariablesValues);
+          // this.setProgramUniformShaderVariablesValues(this.programNoise,uniformShaderVariablesValues);
+          // this.setProgramUniformShaderVariablesValues(this.programLines,uniformShaderLinesVariablesValues);
+        }
+
+
+        drawScene(modelViewMatrix){
+          var tv = vec3.create();
+          // Item 1
+          let time = performance.now() / 100;
+          //console.log(time);
+
+          this.stack.push(mat4.clone(modelViewMatrix));
+            // Translação do Sol
+            vec3.set(tv, 0.0, 0.0, -2000.0); 
+            mat4.translate(modelViewMatrix,modelViewMatrix,tv);
+            // Rotação do Sol (em matriz seprada)
+            let sunRotation = mat4.clone(modelViewMatrix);
+            mat4.rotateY(sunRotation, sunRotation, time * Math.PI / 180);      
+            // update
+            this.updateModelViewMatrix(this.program,sunRotation,"uModelViewMatrix");
+            this.sunModel.draw();
+
+            // Mercúrio
+            this.stack.push(mat4.clone(modelViewMatrix));
+              // Translação
+              vec3.set(tv, 135*Math.cos(-time/10), 0.0, 120*Math.sin(-time/10));  
+              mat4.translate(modelViewMatrix,modelViewMatrix,tv);
+              // Rotação (em matriz separada)
+              let mercuryRotation = mat4.clone(modelViewMatrix);
+              mat4.rotateY(mercuryRotation,mercuryRotation, time * Math.PI / 180);      
+              // update
+              this.updateModelViewMatrix(this.program,mercuryRotation,"uModelViewMatrix");
+              this.mercuryModel.draw();
+            modelViewMatrix = this.stack.pop();
+
+            // Venus
+            this.stack.push(mat4.clone(modelViewMatrix));
+              // Translação
+              vec3.set(tv, 185*Math.cos(-time/7), 0.0, 170*Math.sin(-(time - Math.PI)/7));  
+              mat4.translate(modelViewMatrix,modelViewMatrix,tv);
+              // Rotação (em matriz separada)
+              let venusRotation = mat4.clone(modelViewMatrix);
+              mat4.rotateY(venusRotation,venusRotation, time * Math.PI / 180);      
+              // update
+              this.updateModelViewMatrix(this.program,venusRotation,"uModelViewMatrix");
+              this.venusModel.draw();
+            modelViewMatrix = this.stack.pop();
+
+            // Terra
+            this.stack.push(mat4.clone(modelViewMatrix));
+              // Translação
+              vec3.set(tv, 240*Math.cos(-(time - Math.PI/2)/20), 0.0, 250*Math.sin(-time/20));  
+              mat4.translate(modelViewMatrix,modelViewMatrix,tv);
+              // Rotação (em matriz separada)
+              let earthRotation = mat4.clone(modelViewMatrix);
+              mat4.rotateY(earthRotation,earthRotation, time * Math.PI / 180);      
+              // update
+              this.updateModelViewMatrix(this.program,earthRotation,"uModelViewMatrix");
+              this.earthModel.draw();
+            modelViewMatrix = this.stack.pop();
+
+            // Marte
+            this.stack.push(mat4.clone(modelViewMatrix));
+              // Translação
+              vec3.set(tv, 320*Math.cos(-time/25), 0.0, 370*Math.sin(-time/25));  
+              mat4.translate(modelViewMatrix,modelViewMatrix,tv);
+              // Rotação (em matriz separada)
+              let marsRotation = mat4.clone(modelViewMatrix);
+              mat4.rotateY(marsRotation,marsRotation, time * Math.PI / 90);      
+              // update
+              this.updateModelViewMatrix(this.program,marsRotation,"uModelViewMatrix");
+              this.marsModel.draw();
+            modelViewMatrix = this.stack.pop();
+
+            // Júpiter
+            this.stack.push(mat4.clone(modelViewMatrix));
+              // Translação
+              vec3.set(tv, 420*Math.cos(-time/30), 0.0, 470*Math.sin(-time/30));  
+              mat4.translate(modelViewMatrix,modelViewMatrix,tv);
+              // Rotação (em matriz separada)
+              let jupiterRotation = mat4.clone(modelViewMatrix);
+              mat4.rotateX(jupiterRotation,jupiterRotation, Math.PI / 2); // Ajuste pro eixo de rotação ficar correto
+              mat4.rotateZ(jupiterRotation,jupiterRotation, -time * Math.PI / 18); // Ajuste pro eixo de rotação ficar correto
+              // update
+              this.updateModelViewMatrix(this.program,jupiterRotation,"uModelViewMatrix");
+              this.jupiterModel.draw();
+            modelViewMatrix = this.stack.pop();
+
+            // Saturno
+            this.stack.push(mat4.clone(modelViewMatrix));
+              // Translação
+              vec3.set(tv, 600*Math.cos(-time/23), 0.0, 600*Math.sin(-time/23));  
+              mat4.translate(modelViewMatrix,modelViewMatrix,tv);
+              // Rotação (em matriz separada)
+              let saturnRotation = mat4.clone(modelViewMatrix);
+              mat4.rotateX(saturnRotation,saturnRotation, Math.PI / 2);   // Ajuste pro eixo de rotação ficar correto   
+              mat4.rotateZ(saturnRotation,saturnRotation, -time * Math.PI / 90);   // Ajuste pro eixo de rotação ficar correto   
+              // update
+              this.updateModelViewMatrix(this.program,saturnRotation,"uModelViewMatrix");
+              this.saturnModel.draw();
+            modelViewMatrix = this.stack.pop();
+
+            // Uranus
+            this.stack.push(mat4.clone(modelViewMatrix));
+              // Translação
+              vec3.set(tv, 750*Math.cos(-(time + 3*Math.PI/2)/40), 0.0, 820*Math.sin(-(time + 3*Math.PI/2)/40));  
+              mat4.translate(modelViewMatrix,modelViewMatrix,tv);
+              // Rotação (em matriz separada)
+              let uranusRotation = mat4.clone(modelViewMatrix);
+              mat4.rotateY(uranusRotation,uranusRotation, time * Math.PI / 180);      
+              // update
+              this.updateModelViewMatrix(this.program,uranusRotation,"uModelViewMatrix");
+              this.uranusModel.draw();
+            modelViewMatrix = this.stack.pop();
+            // Neptune
+            this.stack.push(mat4.clone(modelViewMatrix));
+              // Translação
+              vec3.set(tv, 1000*Math.cos(-time/80), 0.0, 1000*Math.sin(-time/80));  
+              mat4.translate(modelViewMatrix,modelViewMatrix,tv);
+              // Rotação (em matriz separada)
+              let neptuneRotation = mat4.clone(modelViewMatrix);
+              mat4.rotateY(neptuneRotation,neptuneRotation, time * Math.PI / 180);      
+              // update
+              this.updateModelViewMatrix(this.program,neptuneRotation,"uModelViewMatrix");
+              this.neptuneModel.draw();
+            modelViewMatrix = this.stack.pop();
+          modelViewMatrix = this.stack.pop();
+        }
+
+
+        draw() {
+          this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
+           
+          var tv = vec3.create();
+          vec3.set(tv, this.translationVector[0], this.translationVector[1], this.translationVector[2]);
+          
+          mat4.fromTranslation(this.modelViewMatrix,tv);
+          mat4.rotateX(this.modelViewMatrix,this.modelViewMatrix,this.rotationVector[0] * Math.PI / 180);
+          mat4.rotateY(this.modelViewMatrix,this.modelViewMatrix,this.rotationVector[1] * Math.PI / 180);
+          mat4.rotateZ(this.modelViewMatrix,this.modelViewMatrix,this.rotationVector[2] * Math.PI / 180);
+          
+          this.updateModelViewMatrix(this.program,this.modelViewMatrix,"uModelViewMatrix");   
+          // this.updateModelViewMatrix(this.programLines,this.modelViewMatrix,"uModelViewMatrix");   
+          // this.updateModelViewMatrix(this.programNoise,this.modelViewMatrix,"uModelViewMatrix");  
+          
+          mat4.identity(this.normalMatrix);
+          mat4.invert(this.normalMatrix,this.modelViewMatrix);
+          mat4.transpose(this.normalMatrix,this.normalMatrix);
+
+          this.updateNormalMatrix(this.program,this.normalMatrix,"uNormalMatrix");            
+          // this.updateNormalMatrix(this.programLines,this.normalMatrix,"uNormalMatrix");    
+          // this.updateNormalMatrix(this.programNoise,this.normalMatrix,"uNormalMatrix");           
+
+
+          mat4.identity(this.projectionMatrix); 
+          //Item 1
+          mat4.perspective(this.projectionMatrix, this.fov*(Math.PI/180), this.gl.canvas.width / this.gl.canvas.height, 0.1, 3000);
+
+          this.updateProjectionMatrix(this.program,this.projectionMatrix,"uProjectionMatrix");
+          // this.updateProjectionMatrix(this.programLines,this.projectionMatrix,"uProjectionMatrix");
+          // this.updateProjectionMatrix(this.programNoise,this.projectionMatrix,"uProjectionMatrix");
+          this.drawScene(this.modelViewMatrix);
+
+        } 
+
+        initControls(){
+            var obj = this;
+
+            //var axis = ["x","y","z"];
+
+            // A wrapper around dat.GUI interface for a simpler API
+            // for the purpose of this book
+            utils.configureControls({
+                
+                /*
+                'Rendering Mode': {
+                value: renderingMode,
+                options: [
+                    'TRIANGLES',
+                    'LINES',
+                    'POINTS',
+                    'LINE_LOOP',
+                    'LINE_STRIP',
+                    'TRIANGLE_STRIP',
+                    'TRIANGLE_FAN'
+                ],
+                onChange: v => {renderingMode = v;render();}
+                },*/
+
+                
+                // reduce receives a function and the initial value (below the initial value is {})
+                // result is the initial value or the return of the previous call to the function
+                // Spread all values from the reduce onto the controls
+                ...['Translate X', 'Translate Y', 'Translate Z'].reduce((result, name, i) => {
+                result[name] = {
+                    value: obj.translationVector[i],
+                    min: -2000, 
+                    max: 2000, 
+                    step: 1.0,
+                    onChange(v, state){
+                    obj.translationVector[i] = v;
+                    obj.draw(); 
+                    }
+                };
+                return result;
+                }, {}),
+
+
+                ...['Rotate X', 'Rotate Y', 'Rotate Z'].reduce((result, name, i) => {
+                result[name] = {
+                    value: obj.rotationVector[i],
+                    min: -180, max: 180, step: 0.000001,
+                    onChange(v, state) {
+                    obj.rotationVector = [
+                        state['Rotate X'],
+                        state['Rotate Y'],
+                        state['Rotate Z']
+                    ];
+                    obj.draw();  
+
+                    }
+                };
+                return result;
+                }, {}),
+
+                
+                'fov':{
+                value: obj.fov,
+                min : 0.0,
+                max : 120,
+                step: 0.001,
+                onChange(v,state){
+                    obj.fov = v;
+                    obj.draw();
+                }
+            }
+        })
+    }
+
+
+
+        init() {
+            // this.gl.clearColor(0.7, 0.7, 0.9, 1.0);
+            this.gl.clearColor(0, 0, 0, 1.0);
+            this.gl.enable(this.gl.DEPTH_TEST);
+            super.init();
+        }
+   
+  }
+
+  </script>
+</head>
+
+<body>
+
+  <canvas id="webgl-canvas" width="1680" height="1050">
+    Your browser does not support the HTML5 canvas element.
+  </canvas>
+
+  <script type="text/javascript">
+      let myWebGLMainAPP = new MyWebGLMainAPP();
+      window.onload = myWebGLMainAPP.init();
+  </script>
+
+</body>
+
+</html>
