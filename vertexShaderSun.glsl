@@ -47,8 +47,6 @@
       else{// se nao é um cor branca
         matDiff = vec4(1.0,1.0,1.0,1.0);
         matSpec = vec4(1.0,1.0,1.0,1.0);
-        //matDiff = vec4(1.0,1.0,1.0,1.0);
-        //matSpec = vec4(1.0,0.0,0.0,1.0);
       }
 
       vec3 Ia; //Iluminacao ambiental
@@ -60,8 +58,7 @@
       float ns = 8.0;
 
       //Calculo da compoenente ambiental
-      //Ia = Ka*vec3(1.0,1.0,1.0);
-      Ia = vec3(1.0,1.0,1.0);
+      Ia = vec3(3.0,3.0,3.0);
 
       //Se o coeficiente de atenuacao difusa for positivo
       if (lambert>0.0){//multiplica o coeficiente pelo material
@@ -81,5 +78,4 @@
       gl_PointSize = 8.0;
       gl_Position = newPos;
       vTextureCoordinate = aTextureCoordinate;
-      //vNormal = aVertexNormal;
     }

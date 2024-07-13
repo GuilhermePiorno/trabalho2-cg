@@ -86,13 +86,8 @@
 
         async create(){
           // Carrega um program       
-          //this.program = this.createProgram("vertex-shader","fragment-shader");
           this.program = await this.loadProgram("vertexShader.glsl","fragmentShader.glsl");
-          // this.program = await this.loadProgram("vertexShaderSun.glsl","fragmentShader.glsl");
           this.programSun = await this.loadProgram("vertexShaderSun.glsl","fragmentShader.glsl");
-          // this.programSun = this.program;
-          // this.programLines = await this.loadProgram("vertexShaderLines.sh","fragmentShaderLines.sh");
-          // this.programNoise = await this.loadProgram("vertexShaderNoise.sh","fragmentShader.sh");
           
           this.gl.useProgram(this.program);
 
@@ -119,12 +114,6 @@
 
           this.setProgramAttribShaderVariablesLocation(this.programSun,this.attribShaderVariables);
           this.setProgramUniformShaderVariablesLocation(this.programSun,this.uniformShaderVariables);
-          // this.setProgramAttribShaderVariablesLocation(this.programNoise,this.attribShaderVariables);
-          // this.setProgramUniformShaderVariablesLocation(this.programNoise,this.uniformShaderVariables);
-
-
-          // this.setProgramAttribShaderVariablesLocation(this.programLines,this.attribShaderLinesVariables);
-          // this.setProgramUniformShaderVariablesLocation(this.programLines,this.uniformShaderLinesVariables);
 
           this.createTransformMatrices();
           
@@ -147,8 +136,6 @@
 
           this.setProgramUniformShaderVariablesValues(this.program,uniformShaderVariablesValues);
           this.setProgramUniformShaderVariablesValues(this.programSun,uniformShaderVariablesValues);
-          // this.setProgramUniformShaderVariablesValues(this.programNoise,uniformShaderVariablesValues);
-          // this.setProgramUniformShaderVariablesValues(this.programLines,uniformShaderLinesVariablesValues);
         }
 
 
@@ -162,38 +149,12 @@
             // Translação do Sol
             vec3.set(tv, 0.0, 0.0, -2000.0); 
             mat4.translate(modelViewMatrix,modelViewMatrix,tv);
+            // Rotação do Sol (em matriz seprada)
             let sunRotation = mat4.clone(modelViewMatrix);
             mat4.rotateY(sunRotation, sunRotation, time * Math.PI / 180);      
             // update
             this.updateModelViewMatrix(this.programSun,sunRotation,"uModelViewMatrix");
-            // this.updateModelViewMatrix(this.programSun,modelViewMatrix,"uModelViewMatrix");
             this.sunModel.draw();
-          modelViewMatrix = this.stack.pop();
-          
-          // this.stack.push(mat4.clone(modelViewMatrix));
-          //   // Translação do Sol
-          //   vec3.set(tv, 0.0, 0.0, -2000.0); 
-          //   mat4.translate(modelViewMatrix,modelViewMatrix,tv);
-          //   // Rotação do Sol (em matriz seprada)
-          //   let sunRotation = mat4.clone(modelViewMatrix);
-          //   mat4.rotateY(sunRotation, sunRotation, time * Math.PI / 180);      
-          //   // update
-          //   this.updateModelViewMatrix(this.program,sunRotation,"uModelViewMatrix");
-          //   this.sunModel.draw();
-          // modelViewMatrix = this.stack.pop();
-
-          
-          this.stack.push(mat4.clone(modelViewMatrix));
-            // Translação do Sol
-            vec3.set(tv, 0.0, 0.0, -2000.0); 
-            mat4.translate(modelViewMatrix,modelViewMatrix,tv);
-            // // Rotação do Sol (em matriz seprada)
-            // let sunRotation = mat4.clone(modelViewMatrix);
-            // mat4.rotateY(sunRotation, sunRotation, time * Math.PI / 180);      
-            // // update
-            // this.updateModelViewMatrix(this.program,sunRotation,"uModelViewMatrix");
-            // // this.updateModelViewMatrix(this.programSun,sunRotation,"uModelViewMatrix");
-            // this.sunModel.draw();
 
             // Mercúrio
             this.stack.push(mat4.clone(modelViewMatrix));
@@ -319,8 +280,6 @@
           
           this.updateModelViewMatrix(this.program,this.modelViewMatrix,"uModelViewMatrix");   
           this.updateModelViewMatrix(this.programSun,this.modelViewMatrix,"uModelViewMatrix");   
-          // this.updateModelViewMatrix(this.programLines,this.modelViewMatrix,"uModelViewMatrix");   
-          // this.updateModelViewMatrix(this.programNoise,this.modelViewMatrix,"uModelViewMatrix");  
           
           mat4.identity(this.normalMatrix);
           mat4.invert(this.normalMatrix,this.modelViewMatrix);
@@ -328,8 +287,6 @@
 
           this.updateNormalMatrix(this.program,this.normalMatrix,"uNormalMatrix");            
           this.updateNormalMatrix(this.programSun,this.normalMatrix,"uNormalMatrix");            
-          // this.updateNormalMatrix(this.programLines,this.normalMatrix,"uNormalMatrix");    
-          // this.updateNormalMatrix(this.programNoise,this.normalMatrix,"uNormalMatrix");           
 
 
           mat4.identity(this.projectionMatrix); 
@@ -338,8 +295,6 @@
 
           this.updateProjectionMatrix(this.program,this.projectionMatrix,"uProjectionMatrix");
           this.updateProjectionMatrix(this.programSun,this.projectionMatrix,"uProjectionMatrix");
-          // this.updateProjectionMatrix(this.programLines,this.projectionMatrix,"uProjectionMatrix");
-          // this.updateProjectionMatrix(this.programNoise,this.projectionMatrix,"uProjectionMatrix");
           this.drawScene(this.modelViewMatrix);
         } 
 
@@ -351,21 +306,6 @@
             // A wrapper around dat.GUI interface for a simpler API
             // for the purpose of this book
             utils.configureControls({
-                
-                /*
-                'Rendering Mode': {
-                value: renderingMode,
-                options: [
-                    'TRIANGLES',
-                    'LINES',
-                    'POINTS',
-                    'LINE_LOOP',
-                    'LINE_STRIP',
-                    'TRIANGLE_STRIP',
-                    'TRIANGLE_FAN'
-                ],
-                onChange: v => {renderingMode = v;render();}
-                },*/
 
                 
                 // reduce receives a function and the initial value (below the initial value is {})

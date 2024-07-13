@@ -51,7 +51,7 @@
         }
 
         createModels(){
-          this.earth = new WebGLSphere(this.gl,this.program,120.0,12,12,new Color(0.0,0.0,1.0,1.0),"SsolarSystemTextures/earth.png");
+          this.earth = new WebGLSphere(this.gl,this.program,800.0,12,12,new Color(0.0,0.0,1.0,1.0),"SsolarSystemTextures/earth.png");
           this.earthModel = this.earth.getWebGLModel();
         }
 
@@ -116,11 +116,8 @@
           //console.log(time);
 
           this.stack.push(mat4.clone(modelViewMatrix));
-            vec3.set(tv, -20.0, -40.0, -340.0); 
+            vec3.set(tv, -20.0, -40.0, -1830.0); 
             mat4.translate(modelViewMatrix,modelViewMatrix,tv);
-            // this.updateModelViewMatrix(this.program,modelViewMatrix,"uModelViewMatrix");
-
-
             // Rotação (em matriz separada)
             let earthRotation = mat4.clone(modelViewMatrix);
             mat4.rotateY(earthRotation,earthRotation, time * Math.PI / 180);      
@@ -128,7 +125,6 @@
             this.updateModelViewMatrix(this.program,earthRotation,"uModelViewMatrix");
             this.earthModel.draw();
 
-            this.earthModel.draw();
           modelViewMatrix = this.stack.pop();
         }
 
@@ -171,20 +167,6 @@
             // for the purpose of this book
             utils.configureControls({
                 
-                /*
-                'Rendering Mode': {
-                value: renderingMode,
-                options: [
-                    'TRIANGLES',
-                    'LINES',
-                    'POINTS',
-                    'LINE_LOOP',
-                    'LINE_STRIP',
-                    'TRIANGLE_STRIP',
-                    'TRIANGLE_FAN'
-                ],
-                onChange: v => {renderingMode = v;render();}
-                },*/
 
                 'Lighting Algorithm': {
                 value: obj.lightingtype,
